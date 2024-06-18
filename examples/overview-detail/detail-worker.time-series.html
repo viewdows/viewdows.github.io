@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BCastView Demo - Detail View</title>
+    <script src="https://cdn.jsdelivr.net/npm/vega@5.27.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.17.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-embed@6.24.0"></script>
+  </head>
+  <body>
+    <h1>Detail View</h1>
+    <div id="vis"></div>
+
+    <script type="module">
+      import { ViewWorker } from "../../dist/index.js";
+
+      const worker = new ViewWorker();
+
+      let constraints = [];
+
+      async function createVisualization() {
+        let previousConstraint = "";
+
+        const { view } = await vegaEmbed(
+          "#vis",
+          {
+            $schema: "https://vega.github.io/schema/vega-lite/v5.json",
+            data: { url: "data/unemployment-across-industries.json" },
+            width: 250,
+            height: 250,
+            mark: "area",
+            params: [
+              {
+                name: "yearmonth_date_constraint",
+                value: undefined,
+              },
+              {
+                name: "date_constraint",
+                value: undefined,
+              },
+            ],
+            transform: [
+              {
+                filter: `(!yearmonth_date_constraint || inrange(datum.date, yearmonth_date_constraint)) && (!date_constraint || inrange(datum.date, date_constraint))`,
+              },
+            ],
+            encoding: {
+              x: {
+                timeUnit: "yearmonth",
+                field: "date",
+                axis: { format: "%Y" },
+              },
+              y: {
+                aggregate: "sum",
+                field: "count",
+                title: "count",
+              },
+            },
+          },
+          { renderer: "svg" }
+        );
+
+        function refreshConstraint() {
+          // First clear the constraints
+          for (let field of ["yearmonth_date", "date"]) {
+            view.signal(`${field}_constraint`, undefined);
+          }
+
+          for (let { constraint } of constraints) {
+            const cons = JSON.parse(constraint);
+            Object.entries(cons).forEach(([field, value]) => {
+              view.signal(`${field}_constraint`, value);
+            });
+          }
+
+          view.run();
+        }
+
+        worker.listen("constraint", (message) => {
+          const existingCons = constraints.find(
+            (cons) => cons.uid == message.uid
+          );
+          if (existingCons) {
+            existingCons.constraint = message.constraint;
+          } else {
+            constraints.push({
+              uid: message.uid,
+              constraint: message.constraint,
+            });
+          }
+          console.log(constraints);
+          refreshConstraint();
+        });
+      }
+
+      createVisualization();
+
+      worker.listen("data", (data) => {
+        if (data.data == "close") window.close();
+      });
+    </script>
+  </body>
+</html>

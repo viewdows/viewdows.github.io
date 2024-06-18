@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BCastView Demo - Overview View</title>
+    <script src="https://cdn.jsdelivr.net/npm/vega@5.27.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.17.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-embed@6.24.0"></script>
+  </head>
+  <body>
+    <h1>Overview View</h1>
+
+    <div id="vis"></div>
+
+    <script type="module">
+      import { ViewWorker } from "../../dist/index.js";
+
+      const worker = new ViewWorker();
+
+      let constraints = [];
+      let topDownMode = true;
+
+      async function createVisualization() {
+        worker.broadcastConstraint("{}", "replace");
+
+        const xField = "Miles_per_Gallon";
+        const yField = "Horsepower";
+
+        const useField = topDownMode ? xField : yField;
+
+        let previousConstraint = "";
+
+        const { view } = await vegaEmbed(
+          "#vis",
+          {
+            $schema: "https://vega.github.io/schema/vega-lite/v5.json",
+            data: { url: "data/cars.json" },
+            [topDownMode ? "height" : "width"]: 80,
+            params: [
+              {
+                name: "Miles_per_Gallon_constraint",
+                value: undefined,
+              },
+              { name: "Cylinders_constraint", value: undefined },
+              { name: "Displacement_constraint", value: undefined },
+              { name: "Horsepower_constraint", value: undefined },
+              { name: "Weight_in_lbs_constraint", value: undefined },
+              { name: "Acceleration_constraint", value: undefined },
+            ],
+            layer: [
+              {
+                mark: { type: "bar", color: "gray" },
+                encoding: {
+                  [topDownMode ? "x" : "y"]: { bin: true, field: useField },
+                  [topDownMode ? "y" : "x"]: { aggregate: "count" },
+                },
+              },
+              {
+                params: [
+                  {
+                    name: "brush",
+                    select: "interval",
+                  },
+                ],
+                mark: { type: "bar", color: "seagreen" },
+                transform: [
+                  {
+                    filter: `(!brush || !brush['${useField}'] || inrange(datum['${useField}'], brush['${useField}'])) &&(!Miles_per_Gallon_constraint || inrange(datum['Miles_per_Gallon'], Miles_per_Gallon_constraint)) && (!Cylinders_constraint || inrange(datum['Cylinders'], Cylinders_constraint)) && (!Displacement_constraint || inrange(datum['Displacement'], Displacement_constraint)) && (!Horsepower_constraint || inrange(datum['Horsepower'], Horsepower_constraint)) && (!Weight_in_lbs_constraint || inrange(datum['Weight_in_lbs'], Weight_in_lbs_constraint)) && (!Acceleration_constraint || inrange(datum['Acceleration'], Acceleration_constraint))`,
+                  },
+                ],
+                encoding: {
+                  [topDownMode ? "x" : "y"]: { bin: true, field: useField },
+                  [topDownMode ? "y" : "x"]: { aggregate: "count" },
+                },
+              },
+            ],
+          },
+          { renderer: "svg" }
+        );
+
+        function refreshConstraint() {
+          // First clear the constraints
+          for (let field of [
+            "Miles_per_Gallon",
+            "Cylinders",
+            "Displacement",
+            "Horsepower",
+            "Weight_in_lbs",
+            "Acceleration",
+          ]) {
+            view.signal(`${field}_constraint`, undefined);
+          }
+
+          for (let { constraint } of constraints) {
+            const cons = JSON.parse(constraint);
+            Object.entries(cons).forEach(([field, value]) => {
+              view.signal(`${field}_constraint`, value);
+            });
+          }
+
+          view.run();
+        }
+
+        view.addSignalListener("brush", (name, value) => {
+          const constraint = JSON.stringify(value);
+          worker.broadcastConstraint(constraint, "replace");
+          previousConstraint = constraint;
+        });
+
+        worker.listen("constraint", (message) => {
+          const existingCons = constraints.find(
+            (cons) => cons.uid == message.uid
+          );
+          if (existingCons) {
+            existingCons.constraint = message.constraint;
+          } else {
+            constraints.push({
+              uid: message.uid,
+              constraint: message.constraint,
+            });
+          }
+          refreshConstraint();
+        });
+
+        worker.listen("arrange", (message) => {
+          if (message.arrangement == "tile") {
+            if (message.layout == "left-right") {
+              topDownMode = false;
+            } else {
+              topDownMode = true;
+            }
+            createVisualization();
+          }
+        });
+      }
+
+      createVisualization();
+
+      worker.listen("data", (data) => {
+        if (data.data == "close") window.close();
+      });
+    </script>
+  </body>
+</html>

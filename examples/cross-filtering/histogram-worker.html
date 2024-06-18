@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BCastView Demo - Cross-filter Histogram</title>
+    <script src="https://cdn.jsdelivr.net/npm/vega@5.27.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.17.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-embed@6.24.0"></script>
+  </head>
+  <body>
+    Field for Histogram
+    <select name="Field for Histogram" id="xField">
+      <option value="Miles_per_Gallon">Miles_per_Gallon</option>
+      <option value="Cylinders">Cylinders</option>
+      <option value="Displacement">Displacement</option>
+      <option value="Horsepower">Horsepower</option>
+      <option value="Weight_in_lbs">Weight_in_lbs</option>
+      <option value="Acceleration">Acceleration</option></select
+    ><br />
+    <input
+      type="button"
+      value="Create Histogram"
+      onclick="createVisualization()"
+    /><br />
+
+    <div id="vis"></div>
+
+    <script type="module">
+      import { ViewWorker } from "../../dist/index.js";
+
+      const worker = new ViewWorker();
+
+      let constraints = [];
+
+      async function createVisualization() {
+        worker.broadcastConstraint("{}", "replace");
+
+        const xField = document.getElementById("xField").value;
+
+        let previousConstraint = "";
+
+        const { view } = await vegaEmbed(
+          "#vis",
+          {
+            $schema: "https://vega.github.io/schema/vega-lite/v5.json",
+            data: { url: "data/cars.json" },
+            height: 80,
+            params: [
+              {
+                name: "Miles_per_Gallon_constraint",
+                value: undefined,
+              },
+              { name: "Cylinders_constraint", value: undefined },
+              { name: "Displacement_constraint", value: undefined },
+              { name: "Horsepower_constraint", value: undefined },
+              { name: "Weight_in_lbs_constraint", value: undefined },
+              { name: "Acceleration_constraint", value: undefined },
+            ],
+            layer: [
+              {
+                mark: { type: "bar", color: "gray" },
+                encoding: {
+                  x: { bin: true, field: xField },
+                  y: { aggregate: "count" },
+                },
+              },
+              {
+                params: [
+                  {
+                    name: "brush",
+                    select: "interval",
+                  },
+                ],
+                mark: { type: "bar", color: "seagreen" },
+                transform: [
+                  {
+                    filter: `(!brush || !brush['${xField}'] || inrange(datum['${xField}'], brush['${xField}'])) &&(!Miles_per_Gallon_constraint || inrange(datum['Miles_per_Gallon'], Miles_per_Gallon_constraint)) && (!Cylinders_constraint || inrange(datum['Cylinders'], Cylinders_constraint)) && (!Displacement_constraint || inrange(datum['Displacement'], Displacement_constraint)) && (!Horsepower_constraint || inrange(datum['Horsepower'], Horsepower_constraint)) && (!Weight_in_lbs_constraint || inrange(datum['Weight_in_lbs'], Weight_in_lbs_constraint)) && (!Acceleration_constraint || inrange(datum['Acceleration'], Acceleration_constraint))`,
+                  },
+                ],
+                encoding: {
+                  x: { bin: true, field: xField },
+                  y: { aggregate: "count" },
+                },
+              },
+            ],
+          },
+          { renderer: "svg" }
+        );
+
+        function refreshConstraint() {
+          // First clear the constraints
+          for (let field of [
+            "Miles_per_Gallon",
+            "Cylinders",
+            "Displacement",
+            "Horsepower",
+            "Weight_in_lbs",
+            "Acceleration",
+          ]) {
+            view.signal(`${field}_constraint`, undefined);
+          }
+
+          for (let { constraint } of constraints) {
+            const cons = JSON.parse(constraint);
+            Object.entries(cons).forEach(([field, value]) => {
+              view.signal(`${field}_constraint`, value);
+            });
+          }
+
+          view.run();
+        }
+
+        view.addSignalListener("brush", (name, value) => {
+          const constraint = JSON.stringify(value);
+          worker.broadcastConstraint(constraint, "replace");
+          previousConstraint = constraint;
+        });
+
+        worker.listen("constraint", (message) => {
+          const existingCons = constraints.find(
+            (cons) => cons.uid == message.uid
+          );
+          if (existingCons) {
+            existingCons.constraint = message.constraint;
+          } else {
+            constraints.push({
+              uid: message.uid,
+              constraint: message.constraint,
+            });
+          }
+          refreshConstraint();
+        });
+
+        worker.listen("history", (message) => {
+          const constraintHistory = message.filter(
+            (x) => x.type == "constraint-update"
+          );
+
+          for (let constraint of constraintHistory) {
+            const existingCons = constraints.find(
+              (cons) => cons.uid == constraint.uid
+            );
+            if (existingCons) {
+              existingCons.constraint = constraint.constraint;
+            } else {
+              constraints.push({
+                uid: constraint.uid,
+                constraint: constraint.constraint,
+              });
+            }
+          }
+
+          refreshConstraint();
+        });
+      }
+
+      window.createVisualization = createVisualization;
+
+      worker.listen("data", (data) => {
+        if (data.data == "close") window.close();
+      });
+    </script>
+  </body>
+</html>

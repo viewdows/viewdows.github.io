@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BCastView Demo - Scatter Plot Matrix Coordinator</title>
+    <script src="https://cdn.jsdelivr.net/npm/vega@5.27.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.17.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-embed@6.24.0"></script>
+  </head>
+  <body>
+    <p>Registered Worker: 0</p>
+
+    <br />
+
+    <p>Select Fields in SPLOM (Suggest 4 fields at most)</p>
+    <input type="checkbox" name="Miles_per_Gallon" />Miles_per_Gallon<br />
+    <input type="checkbox" name="Cylinders" />Cylinders<br />
+    <input type="checkbox" name="Displacement" />Displacement<br />
+    <input type="checkbox" name="Horsepower" />Horsepower<br />
+    <input type="checkbox" name="Weight_in_lbs" />Weight_in_lbs<br />
+    <input type="checkbox" name="Acceleration" />Acceleration<br />
+
+    <br />
+
+    <a href="javascript:createWorker()">Open Views</a><br />
+    <a href="javascript:broadcastClose()">Close All Workers</a><br />
+
+    <script type="module">
+      import { ViewCoordinator } from "../../dist/index.js";
+
+      const coordinator = new ViewCoordinator();
+
+      let previousViewCount = 0;
+
+      window.broadcastClose = () => {
+        coordinator.broadcastData("close");
+      };
+
+      window.createWorker = () => {
+        window.broadcastClose();
+
+        const int = setInterval(() => {
+          if (coordinator.viewManager.views.size == 0) {
+            clearInterval(int);
+
+            const fields = Array.from(
+              document.querySelectorAll("input:checked")
+            ).map((input) => input.name);
+            for (let x = 0; x < fields.length; x++) {
+              for (let y = 0; y < fields.length; y++) {
+                window.open(
+                  `./worker.html?x=${fields[x]}&y=${fields[y]}`,
+                  `worker_${fields[x]}_${fields[y]}`,
+                  `width=400,height=350,top=${y * 450},left=${x * 450}`
+                );
+              }
+            }
+          }
+        }, 10);
+      };
+
+      setInterval(() => {
+        if (previousViewCount > coordinator.viewManager.views.size) {
+          window.broadcastClose();
+        }
+
+        document.querySelector(
+          "p"
+        ).innerText = `Registered Worker: ${coordinator.viewManager.views.size}`;
+
+        previousViewCount = coordinator.viewManager.views.size;
+      }, 10);
+    </script>
+  </body>
+</html>

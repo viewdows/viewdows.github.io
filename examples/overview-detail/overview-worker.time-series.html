@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BCastView Demo - Overview View</title>
+    <script src="https://cdn.jsdelivr.net/npm/vega@5.27.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.17.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-embed@6.24.0"></script>
+  </head>
+  <body>
+    <h1>Overview View</h1>
+    <div id="vis"></div>
+
+    <script type="module">
+      import { ViewWorker } from "../../dist/index.js";
+
+      const worker = new ViewWorker();
+
+      let constraints = [];
+
+      let topDownMode = true;
+
+      async function createVisualization() {
+        let previousConstraint = "";
+
+        const { view } = await vegaEmbed(
+          "#vis",
+          {
+            $schema: "https://vega.github.io/schema/vega-lite/v5.json",
+            data: { url: "data/unemployment-across-industries.json" },
+            width: 250,
+            height: 250,
+            mark: "area",
+            params: [
+              {
+                name: "brush",
+                select: "interval",
+              },
+            ],
+            encoding: {
+              x: {
+                timeUnit: "yearmonth",
+                field: "date",
+                axis: { format: "%Y" },
+              },
+              y: {
+                aggregate: "sum",
+                field: "count",
+                title: "count",
+              },
+            },
+          },
+          { renderer: "svg" }
+        );
+
+        view.addSignalListener("brush", (name, value) => {
+          const constraint = JSON.stringify(value);
+          worker.broadcastConstraint(constraint, "replace");
+          previousConstraint = constraint;
+        });
+
+        worker.listen("arrange", (e) => {
+          if (e.arrangement == "tile") {
+            if (e.layout == "left-right") {
+              topDownMode = false;
+            } else {
+              topDownMode = true;
+            }
+          }
+        });
+      }
+
+      createVisualization();
+
+      worker.listen("data", (data) => {
+        if (data.data == "close") window.close();
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BCastView Demo - Cross-filter Coordinator</title>
+    <script src="https://cdn.jsdelivr.net/npm/vega@5.27.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.17.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-embed@6.24.0"></script>
+  </head>
+  <body>
+    <p>Registered Worker: 0</p>
+
+    <br />
+
+    <a href="javascript:createScatter()">Create a Scatter Plot</a><br />
+    <a href="javascript:createHistogram()">Create a Histogram</a><br />
+
+    <br />
+
+    <a href="javascript:broadcastClose()">Close All Workers</a><br />
+
+    <script type="module">
+      import { ViewCoordinator } from "../../dist/index.js";
+
+      const coordinator = new ViewCoordinator();
+
+      window.broadcastClose = () => {
+        coordinator.broadcastData("close");
+      };
+
+      window.createScatter = () => {
+        window.open(
+          `./scatter-worker.html`,
+          Math.random().toString(),
+          `width=400,height=400,top=0,left=0`
+        );
+      };
+
+      window.createHistogram = () => {
+        window.open(
+          `./histogram-worker.html`,
+          Math.random().toString(),
+          `width=400,height=200,top=0,left=0`
+        );
+      }
+
+      setInterval(() => {
+        document.querySelector(
+          "p"
+        ).innerText = `Registered Worker: ${coordinator.viewManager.views.size}`;
+      }, 10);
+    </script>
+  </body>
+</html>
