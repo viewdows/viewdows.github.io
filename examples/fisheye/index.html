@@ -8,7 +8,7 @@
     />
     <meta name="description" content="" />
     <meta name="author" content="" />
-    <title>Viewdows | Scatter Plot Matrix - Coordinator</title>
+    <title>Viewdows | Fish-Eye - Coordinator</title>
     <!-- Favicon-->
     <link rel="icon" type="image/x-icon" href="../assets/favicon.ico" />
     <!-- Custom Google font-->
@@ -59,19 +59,19 @@
           </div>
 
           <h1 class="display-3 fw-bolder mb-5">
-            <span class="text-gradient d-inline">Viewdows</span> | Scatter Plot
-            Matrix
+            <span class="text-gradient d-inline">Viewdows</span> | Fish-Eye
           </h1>
 
           <h6 class="mb-5">
-            This is a demonstration of the scatter plot matrix. You can select
-            the fields you want to compare and create multiple view windows.
-            <br /><br />
-            Visualization made with Vega-Lite. Original source code from
-            <a
-              target="_blank"
-              href="https://vega.github.io/vega-lite/examples/point_color_with_shape.html"
-              >Vega-Lite Colored Scatterplot</a
+            Fish-eye technique magnifies the local region around the mouse,
+            while leaving the larger graph unaffected for context. The
+            localized, circular nature of the distortion can be seen clearly by
+            applying it to a uniform grid. In this example, we allow user to use
+            the dedicated window as the lens, which can be moved or resized
+            freely. <br /><br />
+            Visualization made with D3. Original source code from
+            <a target="_blank" href="https://bost.ocks.org/mike/fisheye/"
+              >D3 Fisheye Distortion</a
             >.
           </h6>
 
@@ -80,71 +80,13 @@
           </div>
         </div>
         <section class="bg-light px-5 py-5">
-          <h3 class="mt-4">Select Fields in SPLOM</h3>
-
-          <div class="alert alert-warning" role="alert">
-            For the best experience, please select at most 4 fields.
-          </div>
-
-          <ul class="list-group">
-            <a
-              id="UI_Miles_per_Gallon"
-              href="javascript:toggleCheckbox('Miles_per_Gallon')"
-              class="list-group-item list-group-item-action"
-              >Miles_per_Gallon</a
-            >
-            <a
-              id="UI_Cylinders"
-              href="javascript:toggleCheckbox('Cylinders')"
-              class="list-group-item list-group-item-action"
-              >Cylinders</a
-            >
-            <a
-              id="UI_Displacement"
-              href="javascript:toggleCheckbox('Displacement')"
-              class="list-group-item list-group-item-action"
-              >Displacement</a
-            >
-            <a
-              id="UI_Horsepower"
-              href="javascript:toggleCheckbox('Horsepower')"
-              class="list-group-item list-group-item-action"
-              >Horsepower</a
-            >
-            <a
-              id="UI_Weight_in_lbs"
-              href="javascript:toggleCheckbox('Weight_in_lbs')"
-              class="list-group-item list-group-item-action"
-              >Weight_in_lbs</a
-            >
-            <a
-              id="UI_Acceleration"
-              href="javascript:toggleCheckbox('Acceleration')"
-              class="list-group-item list-group-item-action"
-              >Acceleration</a
-            >
-          </ul>
-          <div class="d-none">
-            <input
-              type="checkbox"
-              name="Miles_per_Gallon"
-            />Miles_per_Gallon<br />
-            <input type="checkbox" name="Cylinders" />Cylinders<br />
-            <input type="checkbox" name="Displacement" />Displacement<br />
-            <input type="checkbox" name="Horsepower" />Horsepower<br />
-            <input type="checkbox" name="Weight_in_lbs" />Weight_in_lbs<br />
-            <input type="checkbox" name="Acceleration" />Acceleration<br />
-          </div>
-
-          <br />
-
           <div
             class="d-grid gap-3 d-sm-flex justify-content-sm-center justify-content-xxl-start mb-3"
           >
             <a
               class="btn btn-primary btn-lg px-5 py-3 me-sm-3 fs-6 fw-bolder"
-              href="javascript:createWorker()"
-              >Create View Windows</a
+              href="javascript:createFisheye()"
+              >Create Fish-Eye Lens Windows</a
             >
             <a
               class="btn btn-outline-dark btn-lg px-5 py-3 fs-6 fw-bolder"
@@ -179,6 +121,7 @@
         </div>
       </footer>
     </div>
+
     <div class="vr-compat d-none p-5">
       <a
         id="open-next-view-window"
@@ -239,7 +182,7 @@
     <script type="module">
       import { ViewCoordinator } from "../../dist/index.js";
 
-      const coordinator = new ViewCoordinator();
+      window.coordinator = new ViewCoordinator();
 
       let previousViewCount = 0;
 
@@ -247,29 +190,20 @@
         coordinator.broadcastData("close");
       };
 
-      window.createWorker = () => {
-        window.broadcastClose();
-
-        const int = setInterval(() => {
-          if (coordinator.viewManager.views.size == 0) {
-            clearInterval(int);
-
-            const fields = Array.from(
-              document.querySelectorAll("input:checked")
-            ).map((input) => input.name);
-            const urlList = [];
-            for (let x = 0; x < fields.length; x++) {
-              for (let y = 0; y < fields.length; y++) {
-                urlList.push({
-                  url: `./worker.html?x=${fields[x]}&y=${fields[y]}`,
-                  name: `worker_${fields[x]}_${fields[y]}`,
-                  params: `width=400,height=350,top=${y * 450},left=${x * 450}`,
-                });
-              }
-            }
-            window.openWindows(urlList);
-          }
-        }, 10);
+      window.createFisheye = () => {
+        const urlList = [
+          {
+            url: `./worker.html`,
+            name: Math.random().toString(),
+            params: `width=1000,height=1000,top=0,left=0`,
+          },
+          {
+            url: `./worker.html`,
+            name: Math.random().toString(),
+            params: `width=300,height=300,top=0,left=0`,
+          },
+        ];
+        window.openWindows(urlList);
       };
 
       setInterval(() => {
