@@ -147,6 +147,7 @@
               animate: false,
               duration: 0,
             });
+            console.log(windowLayout, worker.viewId, lastConstraint.uid);
             // Calculate the lat and lng offset
             const topLeft = map.layerPointToLatLng([0, 0]);
             const bottomRight = map.layerPointToLatLng([
