@@ -3,6 +3,7 @@ declare class WindowSpaceManager {
     arrangement: "tile" | "nest" | "isolate";
     layout: "left-right" | "top-down";
     messageBus: MessageBus;
+    lastViewCount: number;
     constructor(messageBus: MessageBus);
     refreshArrange(views: {
         id: string;

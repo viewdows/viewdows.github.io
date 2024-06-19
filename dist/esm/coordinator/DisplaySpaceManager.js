@@ -2,10 +2,12 @@ class WindowSpaceManager {
     arrangement;
     layout;
     messageBus;
+    lastViewCount;
     constructor(messageBus) {
         this.arrangement = "isolate";
         this.layout = "left-right";
         this.messageBus = messageBus;
+        this.lastViewCount = 0;
     }
     refreshArrange(views) {
         let layout = {
@@ -98,11 +100,13 @@ class WindowSpaceManager {
             }
         }
         if (this.arrangement !== layout.arrangement ||
-            (layout.arrangement == "tile" && this.layout !== layout.layout)) {
+            (layout.arrangement == "tile" && this.layout !== layout.layout) ||
+            this.lastViewCount !== views.length) {
             this.arrangement = layout.arrangement;
             if (layout.arrangement == "tile") {
                 this.layout = layout.layout;
             }
+            this.lastViewCount = views.length;
             this.broadcastArrange(layout);
         }
     }
