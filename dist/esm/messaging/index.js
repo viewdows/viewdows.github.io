@@ -1,4 +1,4 @@
-const channelName = "BCastViewMessageBus";
+const channelName = "ViewdowsMessageBus";
 class MessageBus {
     channels;
     adhocs;

@@ -26,6 +26,12 @@ class WindowSpaceManager {
                     arrangement: "tile",
                     layout: "left-right",
                     views: views.map((view) => view.id),
+                    position: views.map((view) => [
+                        view.position.x,
+                        view.position.y,
+                        view.position.width,
+                        view.position.height,
+                    ]),
                 };
             }
             else {
@@ -42,6 +48,12 @@ class WindowSpaceManager {
                         arrangement: "tile",
                         layout: "top-down",
                         views: views.map((view) => view.id),
+                        position: views.map((view) => [
+                            view.position.x,
+                            view.position.y,
+                            view.position.width,
+                            view.position.height,
+                        ]),
                     };
                 }
                 else {
@@ -63,9 +75,23 @@ class WindowSpaceManager {
                         layout = {
                             arrangement: "nest",
                             parentView: largestView.id,
+                            parentPosition: [
+                                largestView.position.x,
+                                largestView.position.y,
+                                largestView.position.width,
+                                largestView.position.height,
+                            ],
                             childrenViews: views
                                 .filter((view) => view.id !== largestView.id)
                                 .map((view) => view.id),
+                            childrenPosition: views
+                                .filter((view) => view.id !== largestView.id)
+                                .map((view) => [
+                                view.position.x,
+                                view.position.y,
+                                view.position.width,
+                                view.position.height,
+                            ]),
                         };
                     }
                 }

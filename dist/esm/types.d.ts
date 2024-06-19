@@ -53,11 +53,14 @@ declare type TileWindowBlock = {
     arrangement: "tile";
     layout: "left-right" | "top-down";
     views: string[];
+    position: [number, number, number, number][];
 };
 declare type NestWindowBlock = {
     arrangement: "nest";
     parentView: string;
     childrenViews: string[];
+    parentPosition: [number, number, number, number];
+    childrenPosition: [number, number, number, number][];
 };
 declare type IsolateWindowBlock = {
     arrangement: "isolate";

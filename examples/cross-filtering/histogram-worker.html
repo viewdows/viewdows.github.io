@@ -1,30 +1,64 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>BCastView Demo - Cross-filter Histogram</title>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
+    <meta name="description" content="" />
+    <meta name="author" content="" />
+    <title>Viewdows | Cross-filter Histogram - Worker</title>
+    <!-- Favicon-->
+    <link rel="icon" type="image/x-icon" href="../assets/favicon.ico" />
+    <!-- Custom Google font-->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@100;200;300;400;500;600;700;800;900&amp;display=swap"
+      rel="stylesheet"
+    />
+    <!-- Bootstrap icons-->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css"
+      rel="stylesheet"
+    />
+    <!-- Core theme CSS (includes Bootstrap)-->
+    <link href="../css/styles.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/vega@5.27.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.17.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/vega-embed@6.24.0"></script>
   </head>
   <body>
-    Field for Histogram
-    <select name="Field for Histogram" id="xField">
-      <option value="Miles_per_Gallon">Miles_per_Gallon</option>
-      <option value="Cylinders">Cylinders</option>
-      <option value="Displacement">Displacement</option>
-      <option value="Horsepower">Horsepower</option>
-      <option value="Weight_in_lbs">Weight_in_lbs</option>
-      <option value="Acceleration">Acceleration</option></select
-    ><br />
-    <input
-      type="button"
-      value="Create Histogram"
-      onclick="createVisualization()"
-    /><br />
+    <div id="form" class="p-3">
+      <div class="d-flex flex-row">
+        Field for Histogram
+        <select class="form-control" name="Field for Histogram" id="xField">
+          <option value="Miles_per_Gallon">Miles_per_Gallon</option>
+          <option value="Cylinders">Cylinders</option>
+          <option value="Displacement">Displacement</option>
+          <option value="Horsepower">Horsepower</option>
+          <option value="Weight_in_lbs">Weight_in_lbs</option>
+          <option value="Acceleration">Acceleration</option>
+        </select>
+      </div>
+      <input
+        class="form-control btn btn-primary btn-small my-2"
+        type="button"
+        value="Create Histogram"
+        onclick="createVisualization()"
+      />
+    </div>
 
     <div id="vis"></div>
+
+    <script>
+      const opener = window.opener;
+      if (!opener) {
+        document.body.innerHTML =
+          "<h1>Please open this window through the coordinator</h1>";
+      }
+    </script>
 
     <script type="module">
       import { ViewWorker } from "../../dist/index.js";
@@ -34,6 +68,8 @@
       let constraints = [];
 
       async function createVisualization() {
+        document.querySelector("#form").style.display = "none";
+
         worker.broadcastConstraint("{}", "replace");
 
         const xField = document.getElementById("xField").value;
@@ -45,7 +81,8 @@
           {
             $schema: "https://vega.github.io/schema/vega-lite/v5.json",
             data: { url: "data/cars.json" },
-            height: 80,
+            width: 300,
+            height: 150,
             params: [
               {
                 name: "Miles_per_Gallon_constraint",

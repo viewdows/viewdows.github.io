@@ -3,13 +3,21 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>BCastView Demo - Scatter Plot Matrix View</title>
+    <title>Viewdows | Scatter Plot Matrix - Worker</title>
     <script src="https://cdn.jsdelivr.net/npm/vega@5.27.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.17.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/vega-embed@6.24.0"></script>
   </head>
   <body>
     <div id="vis"></div>
+
+    <script>
+      const opener = window.opener;
+      if (!opener) {
+        document.body.innerHTML =
+          "<h1>Please open this window through the coordinator</h1>";
+      }
+    </script>
 
     <script type="module">
       import { ViewWorker } from "../../dist/index.js";

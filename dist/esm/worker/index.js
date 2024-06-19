@@ -8,6 +8,7 @@ class ViewWorker {
     viewTracker;
     messageBus;
     history;
+    historyListeners = [];
     constructor() {
         this.viewId = uuid();
         this.messageBus = new MessageBus();
@@ -22,6 +23,12 @@ class ViewWorker {
         window.onbeforeunload = this.destroy.bind(this);
         this.setupHistoryReceiver();
     }
+    addHistoryListener(callback) {
+        this.historyListeners.push(callback);
+        if (this.history) {
+            callback(this.history);
+        }
+    }
     setupHistoryReceiver() {
         const originalOnMessage = window.onmessage;
         const self = this;
@@ -34,6 +41,9 @@ class ViewWorker {
                     case "sync-history":
                         self.history = recMessage.history;
                         break;
+                }
+                for (let listener of self.historyListeners) {
+                    listener(self.history);
                 }
             }
             if (typeof originalOnMessage === "function") {
@@ -52,7 +62,7 @@ class ViewWorker {
             case "arrange":
                 return this.viewTracker.listenArrangeChange(callback);
             case "history":
-                return callback(this.history);
+                return this.addHistoryListener(callback);
         }
     }
     destroy() {

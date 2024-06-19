@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Viewdows | Map - Worker</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+      #vis {
+        height: 100vh;
+        width: 100vw;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="vis"></div>
+
+    <!-- Make sure you put this AFTER Leaflet's CSS -->
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+
+    <script>
+      const opener = window.opener;
+      if (!opener) {
+        document.body.innerHTML =
+          "<h1>Please open this window through the coordinator</h1>";
+      }
+    </script>
+
+    <script type="module">
+      import { ViewWorker } from "../../dist/index.js";
+
+      const worker = new ViewWorker();
+
+      let constraints = [];
+      let topDownMode = true;
+
+      async function createVisualization() {
+        worker.broadcastConstraint("{}", "replace");
+
+        const map = L.map("vis").setView([51.505, -0.09], 13);
+
+        let listenMode = false;
+        let windowLayout = [];
+
+        L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          maxZoom: 19,
+          attribution:
+            '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        }).addTo(map);
+
+        map.on("move", () => {
+          if (!listenMode) {
+            const center = map.getCenter();
+            const zoom = map.getZoom();
+            worker.broadcastConstraint(
+              JSON.stringify({ center, zoom }),
+              "replace"
+            );
+            const selfConstraint = constraints.find(
+              (cons) => cons.uid == worker.viewId
+            );
+            if (selfConstraint) {
+              selfConstraint.constraint = JSON.stringify({ center, zoom });
+              selfConstraint.timestamp = Date.now();
+            } else {
+              constraints.push({
+                uid: worker.viewId,
+                constraint: JSON.stringify({ center, zoom }),
+                timestamp: Date.now(),
+              });
+            }
+          }
+        });
+
+        map.on("zoom", () => {
+          if (!listenMode) {
+            const center = map.getCenter();
+            const zoom = map.getZoom();
+            worker.broadcastConstraint(
+              JSON.stringify({ center, zoom }),
+              "replace"
+            );
+            const selfConstraint = constraints.find(
+              (cons) => cons.uid == worker.viewId
+            );
+            if (selfConstraint) {
+              selfConstraint.constraint = JSON.stringify({ center, zoom });
+              selfConstraint.timestamp = Date.now();
+            } else {
+              constraints.push({
+                uid: worker.viewId,
+                constraint: JSON.stringify({ center, zoom }),
+                timestamp: Date.now(),
+              });
+            }
+          }
+        });
+
+        const center = map.getCenter();
+        const zoom = map.getZoom();
+        worker.broadcastConstraint(JSON.stringify({ center, zoom }), "replace");
+        constraints.push({
+          uid: worker.viewId,
+          constraint: JSON.stringify({ center, zoom }),
+          timestamp: Date.now(),
+        });
+
+        let previousConstraint = "";
+
+        function refreshConstraint() {
+          const lastConstraint = constraints.reduce(
+            (acc, cons) => {
+              if (
+                acc.timestamp < cons.timestamp &&
+                cons.constraint &&
+                cons.constraint != "{}"
+              ) {
+                return cons;
+              }
+              return acc;
+            },
+            { timestamp: 0 }
+          );
+          if (!lastConstraint.constraint) return;
+          const constraint = JSON.parse(lastConstraint.constraint);
+          // Based on the last constraint, update the map
+          if (lastConstraint.uid !== worker.viewId) {
+            listenMode = true;
+            let center = constraint.center;
+            // First perform a zoom
+            map.setView(center, constraint.zoom, {
+              animate: false,
+              duration: 0,
+            });
+            // Calculate the lat and lng offset
+            const topLeft = map.layerPointToLatLng([0, 0]);
+            const bottomRight = map.layerPointToLatLng([
+              window.innerWidth,
+              window.innerHeight,
+            ]);
+            const latOffset = bottomRight.lat - topLeft.lat;
+            const lngOffset = bottomRight.lng - topLeft.lng;
+            // Get the relative position of the current view
+            const index = windowLayout.findIndex(
+              (view) => view == worker.viewId
+            );
+            const refIndex = windowLayout.findIndex(
+              (view) => view == lastConstraint.uid
+            );
+            if (index == -1) {
+              // alert("View lose track of its position");
+              return;
+            }
+            if (topDownMode) {
+              // Switch the position of the current view with the last view
+              center.lat += (index - refIndex) * latOffset;
+            } else {
+              // Switch the position of the current view with the last view
+              center.lng += (index - refIndex) * lngOffset;
+            }
+            map.setView(center, constraint.zoom, {
+              animate: false,
+              duration: 0,
+            });
+            listenMode = false;
+          }
+        }
+
+        worker.listen("constraint", (message) => {
+          const existingCons = constraints.find(
+            (cons) => cons.uid == message.uid
+          );
+          if (existingCons) {
+            existingCons.constraint = message.constraint;
+            existingCons.timestamp = message.timestamp;
+          } else {
+            constraints.push({
+              uid: message.uid,
+              constraint: message.constraint,
+              timestamp: message.timestamp,
+            });
+          }
+          refreshConstraint();
+        });
+
+        worker.listen("arrange", (message) => {
+          if (message.arrangement == "tile") {
+            if (message.layout == "left-right") {
+              topDownMode = false;
+            } else {
+              topDownMode = true;
+            }
+            windowLayout = message.views;
+          }
+          refreshConstraint();
+        });
+
+        worker.listen("history", (messages) => {
+          for (let message of messages) {
+            if (message.type == "constraint-update") {
+              const existingCons = constraints.find(
+                (cons) => cons.uid == message.uid
+              );
+              if (existingCons) {
+                existingCons.constraint = message.constraint;
+                existingCons.timestamp = message.timestamp;
+              } else {
+                constraints.push({
+                  uid: message.uid,
+                  constraint: message.constraint,
+                  timestamp: message.timestamp,
+                });
+              }
+            } else if (message.type == "arrangement-update") {
+              if (message.arrangement == "tile") {
+                if (message.layout == "left-right") {
+                  topDownMode = false;
+                } else {
+                  topDownMode = true;
+                }
+                windowLayout = message.views;
+              }
+            }
+          }
+          refreshConstraint();
+        });
+      }
+
+      createVisualization();
+
+      worker.listen("data", (data) => {
+        if (data.data == "close") window.close();
+      });
+    </script>
+  </body>
+</html>

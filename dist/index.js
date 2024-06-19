@@ -1,5 +1,5 @@
 // dist/esm/messaging/index.js
-var channelName = "BCastViewMessageBus";
+var channelName = "ViewdowsMessageBus";
 var MessageBus = class {
   channels;
   adhocs;
@@ -102,7 +102,13 @@ var WindowSpaceManager = class {
         layout = {
           arrangement: "tile",
           layout: "left-right",
-          views: views.map((view) => view.id)
+          views: views.map((view) => view.id),
+          position: views.map((view) => [
+            view.position.x,
+            view.position.y,
+            view.position.width,
+            view.position.height
+          ])
         };
       } else {
         views.sort((a, b) => a.position.y - b.position.y);
@@ -110,7 +116,13 @@ var WindowSpaceManager = class {
           layout = {
             arrangement: "tile",
             layout: "top-down",
-            views: views.map((view) => view.id)
+            views: views.map((view) => view.id),
+            position: views.map((view) => [
+              view.position.x,
+              view.position.y,
+              view.position.width,
+              view.position.height
+            ])
           };
         } else {
           let largestView = views[0];
@@ -123,7 +135,19 @@ var WindowSpaceManager = class {
             layout = {
               arrangement: "nest",
               parentView: largestView.id,
-              childrenViews: views.filter((view) => view.id !== largestView.id).map((view) => view.id)
+              parentPosition: [
+                largestView.position.x,
+                largestView.position.y,
+                largestView.position.width,
+                largestView.position.height
+              ],
+              childrenViews: views.filter((view) => view.id !== largestView.id).map((view) => view.id),
+              childrenPosition: views.filter((view) => view.id !== largestView.id).map((view) => [
+                view.position.x,
+                view.position.y,
+                view.position.width,
+                view.position.height
+              ])
             };
           }
         }
@@ -515,6 +539,7 @@ var ViewWorker = class {
   viewTracker;
   messageBus;
   history;
+  historyListeners = [];
   constructor() {
     this.viewId = v4_default();
     this.messageBus = new messaging_default();
@@ -529,6 +554,12 @@ var ViewWorker = class {
     window.onbeforeunload = this.destroy.bind(this);
     this.setupHistoryReceiver();
   }
+  addHistoryListener(callback) {
+    this.historyListeners.push(callback);
+    if (this.history) {
+      callback(this.history);
+    }
+  }
   setupHistoryReceiver() {
     const originalOnMessage = window.onmessage;
     const self = this;
@@ -539,6 +570,9 @@ var ViewWorker = class {
           case "sync-history":
             self.history = recMessage.history;
             break;
+        }
+        for (let listener of self.historyListeners) {
+          listener(self.history);
         }
       }
       if (typeof originalOnMessage === "function") {
@@ -557,7 +591,7 @@ var ViewWorker = class {
       case "arrange":
         return this.viewTracker.listenArrangeChange(callback);
       case "history":
-        return callback(this.history);
+        return this.addHistoryListener(callback);
     }
   }
   destroy() {

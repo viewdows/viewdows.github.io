@@ -7,9 +7,11 @@ declare class ViewWorker {
     viewTracker: ViewTracker;
     messageBus: MessageBus;
     history: (EventUpdateMessageBlock | DataUpdateMessageBlock | ConstraintUpdateMessageBlock)[];
+    historyListeners: Function[];
     constructor();
+    addHistoryListener(callback: Function): void;
     setupHistoryReceiver(): void;
-    listen(type: "event" | "data" | "constraint" | "arrange" | "history", callback: Function): any;
+    listen(type: "event" | "data" | "constraint" | "arrange" | "history", callback: Function): void;
     destroy(): void;
     acquireLock(lockName: string, timeOut?: number): Promise<unknown>;
     releaseLock(lockName: string): void;

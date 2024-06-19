@@ -1,23 +1,171 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>BCastView Demo - Overview-Detail Coordinator</title>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
+    <meta name="description" content="" />
+    <meta name="author" content="" />
+    <title>Viewdows | Overview & Detail - Coordinator</title>
+    <!-- Favicon-->
+    <link rel="icon" type="image/x-icon" href="../assets/favicon.ico" />
+    <!-- Custom Google font-->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@100;200;300;400;500;600;700;800;900&amp;display=swap"
+      rel="stylesheet"
+    />
+    <!-- Bootstrap icons-->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css"
+      rel="stylesheet"
+    />
+    <!-- Core theme CSS (includes Bootstrap)-->
+    <link href="../css/styles.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/vega@5.27.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.17.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/vega-embed@6.24.0"></script>
   </head>
-  <body>
-    <p>Registered Worker: 0</p>
+  <body class="d-flex flex-column h-100">
+    <div class="main-content">
+      <main class="flex-shrink-0">
+        <div class="container px-5 pt-3 pb-5">
+          <div id="desktop-hint" class="alert alert-warning" role="alert">
+            Please allow pop-up windows for this page (Instruction for
+            <a
+              target="_blank"
+              href="https://support.google.com/chrome/answer/95472?hl=en&co=GENIE.Platform%3DDesktop"
+              >Chrome</a
+            >,
+            <a
+              target="_blank"
+              href="https://support.microsoft.com/en-us/microsoft-edge/block-pop-ups-in-microsoft-edge-1d8ba4f8-f385-9a0b-e944-aa47339b6bb5"
+              >Edge</a
+            >, and
+            <a
+              target="_blank"
+              href="https://support.mozilla.org/en-US/kb/pop-blocker-settings-exceptions-troubleshooting"
+              >Firefox</a
+            >)
+          </div>
 
-    <br />
+          <div id="vr-hint" class="alert alert-danger" role="alert">
+            Detect you are using VR headset, which doesn't support pop-up
+            multiple windows simutaneously. We'll let you open one by one. Sorry
+            for inconvience.
+          </div>
 
-    <a href="javascript:createOD()">Create the Overview-Detail</a><br />
+          <h1 class="display-3 fw-bolder mb-5">
+            <span class="text-gradient d-inline">Viewdows</span> | Overview &
+            Detail
+          </h1>
 
-    <br />
+          <div class="badge bg-gradient-primary-to-secondary text-white p-3">
+            <p class="m-0 p-0 fs-5">Registered Worker: 0</p>
+          </div>
+        </div>
+        <section class="bg-light px-5 py-5">
+          <div
+            class="d-grid gap-3 d-sm-flex justify-content-sm-center justify-content-xxl-start mb-3"
+          >
+            <a
+              class="btn btn-primary btn-lg px-5 py-3 me-sm-3 fs-6 fw-bolder"
+              href="javascript:createOD()"
+              >Create Overview-Detail Windows</a
+            >
+            <a
+              class="btn btn-outline-dark btn-lg px-5 py-3 fs-6 fw-bolder"
+              href="javascript:broadcastClose()"
+              >Close All Workers</a
+            >
+          </div>
+        </section>
+      </main>
+      <!-- Footer-->
+      <footer class="bg-white py-4 mt-auto">
+        <div class="container px-5">
+          <div
+            class="row align-items-center justify-content-between flex-column flex-sm-row"
+          >
+            <div class="col-auto">
+              <div class="small m-0">
+                Copyright &copy; Anonymous Authors 2024
+              </div>
+            </div>
+            <div class="col-auto">
+              <div class="small m-0">
+                We'll open source the code once the paper is published.
+              </div>
+              <!-- <a class="small text-gradient" href="#!"
+              ><i class="bi bi-github"></i> Github</a
+            >
+            <span class="mx-1">&middot;</span>
+            <a class="small" href="#!">Paper</a> -->
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
 
-    <a href="javascript:broadcastClose()">Close All Workers</a><br />
+    <div class="vr-compat d-none p-5">
+      <a
+        id="open-next-view-window"
+        class="btn btn-primary btn-lg px-5 py-3 me-sm-3 fs-6 fw-bolder"
+        >Open Next View Window</a
+      >
+    </div>
+    <!-- Bootstrap core JS-->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+      const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+      if (userAgent.toLowerCase().includes("vr")) {
+        document.getElementById("vr-hint").style.display = "block";
+        document.getElementById("desktop-hint").style.display = "none";
+      } else {
+        document.getElementById("vr-hint").style.display = "none";
+        document.getElementById("desktop-hint").style.display = "block";
+      }
+
+      function toggleCheckbox(name) {
+        const checkbox = document.querySelector(`input[name="${name}"]`);
+        checkbox.checked = !checkbox.checked;
+        document.querySelector(`#UI_${name}`).classList.toggle("active");
+      }
+
+      function openWindows(urlList) {
+        if (userAgent.toLowerCase().includes("vr") && urlList.length > 1) {
+          document.querySelector(".main-content").classList.add("d-none");
+          document.querySelector(".vr-compat").classList.remove("d-none");
+          let url = urlList.shift();
+          window.open(url.url, url.name, url.params);
+          document.querySelector(
+            "#open-next-view-window"
+          ).innerText = `Open Next View Window (${urlList.length} left)`;
+          url = urlList.shift();
+          document.querySelector("#open-next-view-window").onclick = () => {
+            window.open(url.url, url.name, url.params);
+            document.querySelector(
+              "#open-next-view-window"
+            ).innerText = `Open Next View Window (${urlList.length} left)`;
+            url = urlList.shift();
+            if (!url) {
+              document
+                .querySelector(".main-content")
+                .classList.remove("d-none");
+              document.querySelector(".vr-compat").classList.add("d-none");
+            }
+          };
+        } else {
+          urlList.forEach(({ url, name, params }) => {
+            window.open(url, name, params);
+          });
+        }
+      }
+    </script>
 
     <script type="module">
       import { ViewCoordinator } from "../../dist/index.js";
@@ -31,24 +179,24 @@
       };
 
       window.createDetail = () => {
-        window.open(
-          `./detail-worker.html`,
-          Math.random().toString(),
-          `width=400,height=400,top=0,left=0`
-        );
+        return {
+          url: `./detail-worker.time-series.html`,
+          name: Math.random().toString(),
+          params: `width=400,height=400,top=0,left=0`,
+        };
       };
 
       window.createOverview = () => {
-        window.open(
-          `./overview-worker.html`,
-          Math.random().toString(),
-          `width=400,height=400,top=500,left=0`
-        );
+        return {
+          url: `./overview-worker.time-series.html`,
+          name: Math.random().toString(),
+          params: `width=400,height=250,top=500,left=0`,
+        };
       };
 
       window.createOD = () => {
-        window.createOverview();
-        window.createDetail();
+        const urlList = [window.createOverview(), window.createDetail()];
+        window.openWindows(urlList);
       };
 
       setInterval(() => {
