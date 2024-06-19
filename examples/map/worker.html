@@ -44,7 +44,7 @@
     <script type="module">
       import { ViewWorker } from "../../dist/index.js";
 
-      const worker = new ViewWorker();
+      window.worker = new ViewWorker();
 
       let constraints = [];
       let topDownMode = true;
