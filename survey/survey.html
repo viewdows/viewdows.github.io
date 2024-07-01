@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>User Study - Main Survey</title>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      .survey-button {
+        width: 200px;
+        margin: 10px;
+      }
+      .completed {
+        background-color: #28a745;
+        border-color: #28a745;
+      }
+      .questionnaire {
+        margin-top: 20px;
+        border: 1px solid #ddd;
+        padding: 15px;
+        border-radius: 5px;
+      }
+      .collapse-toggle {
+        cursor: pointer;
+      }
+      .overall-questions {
+        margin-top: 30px;
+        border: 2px solid #007bff;
+        padding: 20px;
+        border-radius: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container mt-5">
+      <h1 class="mb-4">User Study - Main Survey</h1>
+      <p>Please ensure the permission for pop-up windows is granted.</p>
+      <p>
+        Please complete all four analysis tasks. Click each button to open a new
+        window for the corresponding survey.
+      </p>
+      <p>
+        You'll be asked to find the biggest magnitude 5 times for each task. You
+        can move the window freely, but are not supposed to resize them.
+      </p>
+      <div id="surveyButtons"></div>
+      <div id="questionnaireContainer" class="mt-4"></div>
+      <div
+        id="overallQuestions"
+        class="overall-questions"
+        style="display: none"
+      >
+        <h3>Overall Evaluation</h3>
+        <form id="overallForm">
+          <div class="mb-3">
+            <label class="form-label"
+              >Rank the frameworks from best (1) to worst (4):</label
+            >
+            <div id="rankInputs"></div>
+          </div>
+          <div class="mb-3">
+            <label for="overallComment" class="form-label"
+              >Any overall comments or feedback?</label
+            >
+            <textarea
+              class="form-control"
+              id="overallComment"
+              rows="3"
+            ></textarea>
+          </div>
+        </form>
+      </div>
+      <div id="submitSection" class="mt-4" style="display: none">
+        <button id="submitBtn" class="btn btn-primary">
+          Submit All Feedback
+        </button>
+      </div>
+      <!-- Show Survey Code for Copying -->
+      <div class="mt-4" id="codeContainer" style="display: none">
+        <p>
+          <strong>Your survey code:</strong>
+          <span id="surveyCode"></span>
+        </p>
+      </div>
+    </div>
+
+    <script>
+      const surveys = [
+        { id: 0, name: "Traditional Single-Monitor" },
+        { id: 1, name: "VisConnect" },
+        { id: 2, name: "PolyChrome" },
+        { id: 3, name: "Viewdows" },
+      ];
+
+      let completedSurveys = new Set();
+      let anonymousOrder = [];
+
+      function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [array[i], array[j]] = [array[j], array[i]];
+        }
+        // Always let the first survey be the traditional single-monitor
+        const singleMonitorIndex = array.findIndex((survey) => survey.id === 0);
+        [array[0], array[singleMonitorIndex]] = [
+          array[singleMonitorIndex],
+          array[0],
+        ];
+      }
+
+      function createSurveyButtons() {
+        const buttonContainer = document.getElementById("surveyButtons");
+        shuffleArray(surveys);
+        anonymousOrder = surveys.map((survey) => survey.id);
+
+        surveys.forEach((survey, index) => {
+          const button = document.createElement("button");
+          button.textContent =
+            index === 0
+              ? "Traditional Single-Monitor"
+              : `Multi-Monitor Framework ${index}`;
+          button.className = "btn btn-primary survey-button";
+          button.onclick = () => openSurvey(survey.id, index);
+          buttonContainer.appendChild(button);
+        });
+      }
+
+      function addOrShowQuestionnaire(id, index) {
+        const container = document.getElementById("questionnaireContainer");
+        let questionnaire = document.getElementById(`questionnaire_${id}`);
+
+        if (!questionnaire) {
+          questionnaire = document.createElement("div");
+          questionnaire.id = `questionnaire_${id}`;
+          questionnaire.className = "questionnaire";
+          questionnaire.innerHTML = `
+                    <h3 class="collapse-toggle" data-bs-toggle="collapse" data-bs-target="#questionnaireForm_${id}">
+                        Questionnaire for ${
+                          index === 0
+                            ? "Traditional Single-Monitor"
+                            : `Multi-Monitor Framework ${index}`
+                        }
+                    </h3>
+                    <form id="questionnaireForm_${id}" class="collapse show">
+                        <div class="mb-3">
+                            <label for="expScore_${id}" class="form-label">How would you rate your experience using this framework? (very bad (1) - very good (5))</label>
+                            <input type="range" class="form-range" id="expScore_${id}" min="1" max="5" step="1" required>
+                            <output for="expScore_${id}"></output>
+                        </div>
+                        <div class="mb-3">
+                            <label for="comment_${id}" class="form-label">Please provide any comments or feedback about this framework:</label>
+                            <textarea class="form-control" id="comment_${id}" rows="3" required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="isError_${id}" class="form-label">Did you encounter any errors or bugs while using this framework?</label>
+                            <select class="form-select" id="isError_${id}" required>
+                                <option value="false">No</option>
+                                <option value="true">Yes</option>
+                            </select>
+                        </div>
+                    </form>
+                `;
+          container.insertBefore(questionnaire, container.firstChild);
+
+          // Add event listener for the range input
+          const rangeInput = questionnaire.querySelector(`#expScore_${id}`);
+          const output = questionnaire.querySelector(
+            `output[for="expScore_${id}"]`
+          );
+          rangeInput.addEventListener("input", function () {
+            output.textContent = this.value;
+          });
+          output.textContent = rangeInput.value; // Set initial value
+        } else {
+          // If questionnaire already exists, just show it
+          const form = document.getElementById(`questionnaireForm_${id}`);
+          if (form.classList.contains("collapse")) {
+            form.classList.add("show");
+          }
+        }
+
+        markSurveyCompleted(id);
+      }
+
+      function markSurveyCompleted(id) {
+        completedSurveys.add(id);
+        updateButtonStatus();
+        checkAllCompleted();
+      }
+
+      function updateButtonStatus() {
+        const buttons = document.querySelectorAll(".survey-button");
+        buttons.forEach((button, index) => {
+          if (completedSurveys.has(surveys[index].id)) {
+            button.classList.add("completed");
+          }
+        });
+      }
+
+      function checkAllCompleted() {
+        if (completedSurveys.size === surveys.length) {
+          document.getElementById("overallQuestions").style.display = "block";
+          document.getElementById("submitSection").style.display = "block";
+          createRankInputs();
+        }
+      }
+
+      function createRankInputs() {
+        const rankInputs = document.getElementById("rankInputs");
+        surveys.forEach((survey, index) => {
+          const label =
+            index === 0
+              ? "Traditional Single-Monitor"
+              : `Multi-Monitor Framework ${index}`;
+          rankInputs.innerHTML += `
+                    <div class="mb-2">
+                        <label for="rank_${survey.id}" class="form-label">${label}</label>
+                        <input type="number" class="form-control" id="rank_${survey.id}" min="1" max="4" required>
+                    </div>
+                `;
+        });
+      }
+
+      function submitAllQuestionnaires() {
+        const allData = surveys.map((survey, index) => {
+          const id = survey.id;
+          return {
+            framework:
+              index === 0
+                ? "traditional"
+                : ["visconnect", "polychrome", "viewdows"][
+                    anonymousOrder.indexOf(id) - 1
+                  ],
+            results: {
+              exp_score: document.getElementById(`expScore_${id}`).value,
+              comment: document.getElementById(`comment_${id}`).value,
+              is_error:
+                document.getElementById(`isError_${id}`).value === "true",
+              rank_order: document.getElementById(`rank_${id}`).value,
+            },
+          };
+        });
+
+        const overallComment = document.getElementById("overallComment").value;
+
+        // Here you would typically send this data to your server
+        console.log(
+          "Submitting all questionnaires:",
+          allData,
+          "Overall comment:",
+          overallComment
+        );
+
+        Promise.all([
+          ...allData.map((data) =>
+            fetch("http://115.28.71.92:3000/submit-framework-results", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                user_id: new URLSearchParams(window.location.search).get(
+                  "surveyID"
+                ),
+                ...data,
+              }),
+            })
+          ),
+        ]).then(() => {
+          fetch("http://115.28.71.92:3000/finalize-survey", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              user_id: new URLSearchParams(window.location.search).get(
+                "surveyID"
+              ),
+              overall_comment: overallComment,
+            }),
+          })
+            .then((res) => res.json())
+            .then((data) => {
+              alert(
+                `Thank you for completing the study! Your code is ${data.survey_code}`
+              );
+              document.getElementById("surveyCode").textContent =
+                data.survey_code;
+              document.getElementById("codeContainer").style.display = "block";
+              document.getElementById("surveyButtons").style.display = "none";
+              document.getElementById("questionnaireContainer").style.display =
+                "none";
+              document.getElementById("overallQuestions").style.display =
+                "none";
+              document.getElementById("submitSection").style.display = "none";
+            });
+        });
+      }
+
+      window.onload = () => {
+        createSurveyButtons();
+        document
+          .getElementById("submitBtn")
+          .addEventListener("click", submitAllQuestionnaires);
+      };
+    </script>
+
+    <script type="module">
+      import { ViewCoordinator } from "../dist/index.js";
+
+      window.coordinator = new ViewCoordinator();
+
+      let previousViewCount = 0;
+
+      window.broadcastClose = () => {
+        coordinator.broadcastData("close");
+      };
+
+      window.openSurvey = function (id, index) {
+        if (id == 2) {
+          const basicUrl = new URL(
+            `./survey_${id}.html?surveyID=${new URLSearchParams(
+              window.location.search
+            ).get("surveyID")}`,
+            window.location.href
+          ).toString();
+          const randomLeftHexId = Math.floor(Math.random() * 16777215)
+            .toString(16)
+            .slice(2, 8);
+          const randomRightHexId = Math.floor(Math.random() * 16777215)
+            .toString(16)
+            .slice(2, 8);
+
+          const proxyUrls = [
+            `http://115.28.71.92:8899/polychrome?url=${encodeURIComponent(
+              basicUrl
+            )}&peerId=${randomLeftHexId}&spaceConfig=2&displayConfig=1&host=115.28.71.92&port=8899&surveyID=${new URLSearchParams(
+              window.location.search
+            ).get("surveyID")}`,
+            `http://115.28.71.92:8899/polychrome?url=${encodeURIComponent(
+              basicUrl
+            )}&peerId=${randomRightHexId}&spaceConfig=2&displayConfig=2&host=115.28.71.92&port=8899&surveyID=${new URLSearchParams(
+              window.location.search
+            ).get("surveyID")}`,
+          ];
+
+          const windowLeftName = `survey_${id}_left`;
+          const windowRightName = `survey_${id}_right`;
+          const windowLeftFeatures =
+            "width=800,height=600,resizable=no,scrollbars=yes,status=1";
+          const windowRightFeatures =
+            "left=800,width=800,height=600,resizable=no,scrollbars=yes,status=1";
+
+          const surveyWindowLeft = window.open(
+            proxyUrls[0],
+            windowLeftName,
+            windowLeftFeatures
+          );
+
+          const surveyWindowRight = window.open(
+            proxyUrls[1],
+            windowRightName,
+            windowRightFeatures
+          );
+
+          const checkCompletion = setInterval(() => {
+            if (surveyWindowLeft.closed && surveyWindowRight.closed) {
+              clearInterval(checkCompletion);
+              window.addOrShowQuestionnaire(id, index);
+            }
+          }, 1000);
+        } else if (id == 3) {
+          const urls = [
+            `survey_3.html?surveyID=${new URLSearchParams(
+              window.location.search
+            ).get("surveyID")}`,
+            `survey_3.html?surveyID=${new URLSearchParams(
+              window.location.search
+            ).get("surveyID")}`,
+          ];
+
+          const windowLeftName = `survey_${id}_left`;
+          const windowRightName = `survey_${id}_right`;
+          const windowLeftFeatures =
+            "width=800,height=600,resizable=no,scrollbars=yes,status=1";
+          const windowRightFeatures =
+            "left=800,width=800,height=600,resizable=no,scrollbars=yes,status=1";
+
+          const surveyWindowLeft = window.open(
+            urls[0],
+            windowLeftName,
+            windowLeftFeatures
+          );
+
+          const surveyWindowRight = window.open(
+            urls[1],
+            windowRightName,
+            windowRightFeatures
+          );
+
+          const checkCompletion = setInterval(() => {
+            if (surveyWindowLeft.closed && surveyWindowRight.closed) {
+              clearInterval(checkCompletion);
+              window.addOrShowQuestionnaire(id, index);
+            }
+          }, 1000);
+        } else {
+          const url = `survey_${id}.html?surveyID=${new URLSearchParams(
+            window.location.search
+          ).get("surveyID")}`;
+          const windowName = `survey_${id}`;
+          const windowFeatures =
+            "width=800,height=600,resizable=no,scrollbars=yes,status=1";
+
+          const surveyWindow = window.open(url, windowName, windowFeatures);
+
+          const checkCompletion = setInterval(() => {
+            if (surveyWindow.closed) {
+              clearInterval(checkCompletion);
+              window.addOrShowQuestionnaire(id, index);
+            }
+          }, 1000);
+        }
+      };
+
+      setInterval(() => {
+        if (coordinator.viewManager.views.size < previousViewCount) {
+          // window.broadcastClose();
+        }
+
+        previousViewCount = coordinator.viewManager.views.size;
+      }, 10);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>User Study - Introduction</title>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="container mt-5">
+      <!-- <h1 class="mb-4">Viewdows User Study</h1> -->
+
+      <section id="introduction" class="mb-5">
+        <h2>Introduction</h2>
+        <p>
+          Thank you for your interest in participating in our user study. This
+          study aims to evaluate the usability and effectiveness of several
+          multi-monitor frameworks for data analysis tasks.
+        </p>
+        <p><strong>Estimated time:</strong> up to 60 minutes</p>
+        <!-- <p><strong>Compensation:</strong> $15 upon successful completion</p> -->
+      </section>
+
+      <section id="requirements" class="mb-5">
+        <h2>Requirements</h2>
+        <ul>
+          <li>You must have more than one monitor (screen) for PC or laptop</li>
+          <li>You should have experience in data analysis</li>
+          <li>A stable internet connection is required</li>
+          <li>Please use a desktop or laptop computer (not a mobile device)</li>
+        </ul>
+      </section>
+
+      <section id="consent" class="mb-5">
+        <h2>Consent Form</h2>
+        <p>By participating in this study, you agree to the following:</p>
+        <ul>
+          <li>
+            Your participation is voluntary, and you may withdraw at any time
+          </li>
+          <li>
+            Your responses will be anonymized and used for research purposes
+            only
+          </li>
+          <li>
+            You agree to provide honest and thoughtful responses to the best of
+            your ability
+          </li>
+        </ul>
+        <div class="form-check">
+          <input
+            class="form-check-input"
+            type="checkbox"
+            id="consentCheck"
+            required
+          />
+          <label class="form-check-label" for="consentCheck">
+            I have read and agree to the terms above
+          </label>
+        </div>
+      </section>
+
+      <section id="survey" class="mb-5">
+        <h2>Pre-study Questionnaire</h2>
+        <form id="preSurvey" action="#">
+          <div class="mb-3">
+            <label for="age" class="form-label">Age</label>
+            <input type="number" class="form-control" id="age" required />
+          </div>
+          <div class="mb-3">
+            <label for="gender" class="form-label">Gender</label>
+            <select class="form-select" id="gender" required>
+              <option value="">Select gender</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other</option>
+              <option value="prefer-not-to-say">Prefer not to say</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="education" class="form-label"
+              >Highest Level of Education</label
+            >
+            <select class="form-select" id="education" required>
+              <option value="">Select education level</option>
+              <option value="high-school">High School</option>
+              <option value="bachelors">Bachelor's Degree</option>
+              <option value="masters">Master's Degree</option>
+              <option value="phd">Ph.D.</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="dataVisExperience" class="form-label"
+              >Experience with data visualization tools (1-5)</label
+            >
+            <input
+              type="range"
+              class="form-range"
+              min="1"
+              max="5"
+              id="dataVisExperience"
+              required
+            />
+            <div class="d-flex justify-content-between">
+              <span>Novice</span>
+              <span>Expert</span>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label for="multiViewExperience" class="form-label"
+              >Familiarity with multi-view visualizations (1-5)</label
+            >
+            <input
+              type="range"
+              class="form-range"
+              min="1"
+              max="5"
+              id="multiViewExperience"
+              required
+            />
+            <div class="d-flex justify-content-between">
+              <span>Not familiar</span>
+              <span>Very familiar</span>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Available devices for this study </label>
+            <div class="form-check">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                id="deviceDesktop"
+              />
+              <label class="form-check-label" for="deviceDesktop"
+                >Desktop PC</label
+              >
+            </div>
+            <div class="form-check">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                id="deviceLaptop"
+              />
+              <label class="form-check-label" for="deviceLaptop">Laptop</label>
+            </div>
+            <div class="form-check">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                id="deviceTablet"
+              />
+              <label class="form-check-label" for="deviceTablet">Tablet</label>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label for="numMonitors" class="form-label"
+              >Number of monitors/screens available</label
+            >
+            <input
+              type="number"
+              class="form-control"
+              id="numMonitors"
+              min="2"
+              required
+            />
+          </div>
+          <button type="button" id="submitButton" class="btn btn-primary">
+            Submit and Continue to Study
+          </button>
+        </form>
+      </section>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const form = document.getElementById("preSurvey");
+        const submitButton = document.getElementById("submitButton");
+
+        submitButton.addEventListener("click", function () {
+          if (validateForm()) {
+            const formData = {
+              age: document.getElementById("age").value,
+              gender: document.getElementById("gender").value,
+              education: document.getElementById("education").value,
+              dataVisExperience:
+                document.getElementById("dataVisExperience").value,
+              multiViewExperience: document.getElementById(
+                "multiViewExperience"
+              ).value,
+              devices: {
+                laptop: document.getElementById("deviceLaptop").checked,
+                desktop: document.getElementById("deviceDesktop").checked,
+                tablet: document.getElementById("deviceTablet").checked,
+              },
+              numMonitors: document.getElementById("numMonitors").value,
+            };
+
+            submitSurvey(formData);
+          }
+        });
+      });
+
+      function validateForm() {
+        const form = document.getElementById("preSurvey");
+        if (!form.checkValidity()) {
+          form.reportValidity();
+          return false;
+        }
+
+        if (!document.getElementById("consentCheck").checked) {
+          alert("Please agree to the consent form before proceeding.");
+          return false;
+        }
+
+        return true;
+      }
+
+      function submitSurvey(formData) {
+        fetch("http://115.28.71.92:3000/submit-survey", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(formData),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            console.log("Success:", data);
+            alert(
+              "Thank you for completing the survey. The study will begin shortly."
+            );
+            return `./intro.html?surveyID=${data.id}`;
+          })
+          .then((url) => {
+            window.location = url;
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            alert(
+              "There was an error submitting your survey. Please try again."
+            );
+          });
+      }
+    </script>
+  </body>
+</html>

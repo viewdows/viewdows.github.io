@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>User Study - Find Maximum Magnitude</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css"
+    />
+    <style>
+      #map {
+        height: 400px;
+        width: 1600px;
+      }
+      .info-box {
+        width: 800px;
+        padding: 10px;
+        background: white;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+      }
+      #polychrome-toggle {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div style="transform: scaleX(50%); transform-origin: 0 0">
+      <div id="map"></div>
+      <div id="info" class="info-box"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+      let map, info, earthquakes, largestMagnitude;
+      let startTime, endTime;
+
+      // Initialize the map
+      function initMap() {
+        map = L.map("map").setView([0, 0], 2);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution: "© OpenStreetMap contributors",
+        }).addTo(map);
+      }
+
+      // Fetch earthquake data
+      async function fetchData() {
+        const response = await fetch(
+          "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=2024-06-01&endtime=2024-07-01&minmagnitude=2.5"
+        );
+        const data = await response.json();
+        return data.features;
+      }
+
+      var seed = 42;
+      function random() {
+        var x = Math.sin(seed++) * 10000;
+        return x - Math.floor(x);
+      }
+
+      // Randomly sample 20 earthquakes
+      function sampleEarthquakes(data) {
+        return data.sort(() => 0.5 - random()).slice(0, 20);
+      }
+
+      // Display earthquakes on the map
+      function displayEarthquakes(earthquakes) {
+        largestMagnitude = Math.max(
+          ...earthquakes.map((eq) => eq.properties.mag)
+        );
+        earthquakes.forEach((eq) => {
+          const { coordinates } = eq.geometry;
+          const { mag, place } = eq.properties;
+          const marker = L.marker([coordinates[1], coordinates[0]], {
+            icon: L.divIcon({
+              html: `<div style="background-color: white; border: 1px solid black; border-radius: 50%; width: ${(
+                mag * 10
+              ).toFixed(0)}px; height: ${(mag * 10).toFixed(
+                0
+              )}px; text-align: center; line-height: ${(mag * 10).toFixed(
+                0
+              )}px;">${mag.toFixed(1)}</div>`,
+              className: "magnitude-icon",
+            }),
+          }).addTo(map);
+
+          marker.on("click", () => showEarthquakeInfo(eq));
+        });
+        var items = document.getElementsByTagName("*");
+        for (var i = 0; i < items.length; i++) {
+          elem = items[i];
+          if (elem.id == null || elem.id == "") {
+            elem.id = "pchrome" + i;
+          }
+        }
+      }
+
+      // Show earthquake info and allow selection
+      function showEarthquakeInfo(eq) {
+        const { mag, place, time } = eq.properties;
+        const infoHtml = `
+                <h4>Earthquake Details</h4>
+                <p>Magnitude: ${mag}</p>
+                <p>Location: ${place}</p>
+                <p>Time: ${new Date(time).toLocaleString()}</p>
+                <button class="btn btn-primary" onclick="selectEarthquake('${place}', ${mag})">Select as Largest Magnitude</button>
+            `;
+        info.innerHTML = infoHtml;
+        var items = document.getElementsByTagName("*");
+        for (var i = 0; i < items.length; i++) {
+          elem = items[i];
+          if (elem.id == null || elem.id == "") {
+            elem.id = "pchrome" + i;
+          }
+        }
+      }
+
+      let selectedLogs = [];
+
+      // Handle earthquake selection
+      function selectEarthquake(place, magnitude) {
+        endTime = new Date();
+        const timeTaken = (endTime - startTime) / 1000; // in seconds
+        const isCorrect = magnitude === largestMagnitude;
+
+        // Here you would typically log the result to your server
+        console.log({
+          timeTaken,
+          isCorrect,
+          selectedMagnitude: magnitude,
+          largestMagnitude,
+        });
+
+        selectedLogs.push({
+          timeTaken,
+          isCorrect,
+          selectedMagnitude: magnitude,
+          largestMagnitude,
+        });
+
+        if (selectedLogs.length >= 5) {
+          console.log(selectedLogs);
+          // Post the avg_time, count_correctness, avg_magnitude_residual to server
+          fetch("http://115.28.71.92:3000/submit-framework-results", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              user_id: new URLSearchParams(window.location.search).get(
+                "surveyID"
+              ),
+              framework: "polychrome",
+              results: {
+                avg_time:
+                  selectedLogs.map((l) => l.timeTaken).reduce((p, v) => p + v) /
+                  selectedLogs.length,
+                count_correctness: selectedLogs.filter((l) => l.isCorrect)
+                  .length,
+                avg_magnitude_residual:
+                  selectedLogs
+                    .map((l) => l.largestMagnitude - l.selectedMagnitude)
+                    .reduce((p, v) => p + v) / selectedLogs.length,
+              },
+            }),
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              console.log("Success:", data);
+
+              alert(
+                "You have completed this task. Please go back to the main study."
+              );
+              window.close();
+            })
+            .catch((error) => {
+              console.error("Error:", error);
+              alert(
+                "There was an error submitting your survey. Please try again."
+              );
+            });
+        } else {
+          startNewTrial();
+        }
+      }
+
+      // Start a new trial
+      async function startNewTrial() {
+        map.eachLayer((layer) => {
+          if (layer instanceof L.Marker) {
+            map.removeLayer(layer);
+          }
+        });
+        info.innerHTML = "";
+        startTime = new Date();
+        const allEarthquakes = await fetchData();
+        earthquakes = sampleEarthquakes(allEarthquakes);
+        displayEarthquakes(earthquakes);
+      }
+
+      // Initialize the page
+      window.onload = async () => {
+        initMap();
+        info = document.getElementById("info");
+        await startNewTrial();
+      };
+    </script>
+  </body>
+</html>
